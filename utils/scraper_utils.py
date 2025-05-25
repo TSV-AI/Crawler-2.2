@@ -91,7 +91,7 @@ async def check_no_results(
 async def fetch_and_process_page(
     crawler: AsyncWebCrawler,
     page_number: int,
-    base_url: str,
+    current_page_url: str,  # Changed from base_url
     css_selector: str,
     llm_strategy: LLMExtractionStrategy,
     session_id: str,
@@ -116,17 +116,17 @@ async def fetch_and_process_page(
             - List[dict]: A list of processed venues from the page.
             - bool: A flag indicating if the "No Results Found" message was encountered.
     """
-    url = f"{base_url}?page={page_number}"
-    print(f"Loading page {page_number}...")
+    # url = f"{base_url}?page={page_number}" # base_url is now current_page_url
+    print(f"Loading page {page_number} from URL: {current_page_url}...")
 
     # Check if "No Results Found" message is present
-    no_results = await check_no_results(crawler, url, session_id)
+    no_results = await check_no_results(crawler, current_page_url, session_id)
     if no_results:
         return [], True  # No more results, signal to stop crawling
 
     # Fetch page content with the extraction strategy
     result = await crawler.arun(
-        url=url,
+        url=current_page_url,
         config=CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,  # Do not use cached data
             extraction_strategy=llm_strategy,  # Strategy for data extraction
@@ -141,28 +141,39 @@ async def fetch_and_process_page(
 
     # Parse extracted content
     extracted_data = json.loads(result.extracted_content)
+    # Print extracted_data after json.loads
+    print(f"Extracted data from page {page_number}: {extracted_data}")
     if not extracted_data:
         print(f"No venues found on page {page_number}.")
         return [], False
 
     # After parsing extracted content
-    print("Extracted data:", extracted_data)
+    # print("Extracted data:", extracted_data) # Replaced by the line above
+    print(f"Number of venues extracted from page {page_number} before duplicate/completeness check: {len(extracted_data)}")
 
     # Process venues
     complete_venues = []
     for venue in extracted_data:
-        # Debugging: Print each venue to understand its structure
-        print("Processing venue:", venue)
+        # Print each venue object being processed
+        print(f"Processing venue on page {page_number}: {venue}")
 
         # Ignore the 'error' key if it's False
         if venue.get("error") is False:
             venue.pop("error", None)  # Remove the 'error' key if it's False
 
         if not is_complete_venue(venue, required_keys):
+            # Print message for incomplete venue
+            print(f"Skipping incomplete venue on page {page_number}: {venue.get('name', 'Unknown name')}")
             continue  # Skip incomplete venues
 
+        # Ensure 'name' key exists before checking for duplicates
+        if "name" not in venue:
+            print(f"Skipping venue on page {page_number} due to missing 'name': {venue}")
+            continue
+
         if is_duplicate_venue(venue["name"], seen_names):
-            print(f"Duplicate venue '{venue['name']}' found. Skipping.")
+            # Print message for duplicate venue
+            print(f"Duplicate venue '{venue['name']}' found on page {page_number}. Skipping.")
             continue  # Skip duplicate venues
 
         # Add venue to the list
