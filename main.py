@@ -56,7 +56,7 @@ async def crawl_venues():
 
             # Add the venues from this page to the total list
             all_venues.extend(venues)
-            page_number += 1  # Move to the next page
+            #page_number += 1  # Move to the next page
 
             # Pause between requests to be polite and avoid rate limits
             await asyncio.sleep(2)  # Adjust sleep time as needed
