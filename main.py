@@ -29,16 +29,19 @@ async def crawl_venues():
     page_number = 1
     all_venues = []
     seen_names = set()
+    max_pages = 2  # Limit the number of pages to scrape
 
     # Start the web crawler context
     # https://docs.crawl4ai.com/api/async-webcrawler/#asyncwebcrawler
     async with AsyncWebCrawler(config=browser_config) as crawler:
-        while True:
+        while page_number <= max_pages:
+            current_url = f"{BASE_URL}?page={page_number}"
+            print(f"Scraping URL: {current_url}")
             # Fetch and process data from the current page
             venues, no_results_found = await fetch_and_process_page(
                 crawler,
                 page_number,
-                BASE_URL,
+                current_url,  # Pass current_url instead of BASE_URL
                 CSS_SELECTOR,
                 llm_strategy,
                 session_id,
@@ -50,16 +53,23 @@ async def crawl_venues():
                 print("No more venues found. Ending crawl.")
                 break  # Stop crawling when "No Results Found" message appears
 
-            if not venues:
-                print(f"No venues extracted from page {page_number}.")
-                break  # Stop if no venues are extracted
+            # The print for "No venues extracted from page" is now in fetch_and_process_page
+            # So we only break here if no_results_found is True or venues is empty
+            if not venues and not no_results_found:
+                print(f"No complete or non-duplicate venues found on page {page_number}, stopping.")
+                break
+
 
             # Add the venues from this page to the total list
             all_venues.extend(venues)
-            #page_number += 1  # Move to the next page
+            print(f"Found {len(venues)} complete and non-duplicate venues on page {page_number}.")
+            page_number += 1  # Move to the next page
 
             # Pause between requests to be polite and avoid rate limits
             await asyncio.sleep(2)  # Adjust sleep time as needed
+        else:
+            if page_number > max_pages:
+                print(f"Finished scraping {max_pages} pages as requested.")
 
     # Save the collected venues to a CSV file
     if all_venues:
