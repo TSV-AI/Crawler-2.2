@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 from crawl4ai import AsyncWebCrawler
 from config import BASE_URL, CSS_SELECTOR, REQUIRED_KEYS #
 
-# --- MODIFICATION: Import DB utility functions ---
+# --- MODIFICATION: Ensure you're importing the DB utility functions ---
 # Make sure the path is correct (e.g., utils.data_utils or utils.db_utils)
-# and that these functions exist in the file you just updated.
+# and that these functions exist in the file you updated.
 from utils.data_utils import init_db_pool, save_venues_to_db, close_db_pool 
 
 from utils.scraper_utils import ( #
@@ -23,20 +23,14 @@ print("DEBUG: Successfully called load_dotenv()")
 async def crawl_venues():
     print("DEBUG: Entered crawl_venues()")
     
-    # --- MODIFICATION: Initialize DB Pool (this will also create the table) ---
-    # This needs to be called before any database operations.
-    # The init_db_pool function should handle exceptions and print errors if connection fails.
-    # If it raises an exception, the script might stop here, which is intended if DB is unavailable.
-    await init_db_pool()
+    await init_db_pool() 
     
-    # Access the pool from your data_utils/db_utils module to check if it initialized
-    # This assumes DB_POOL is a global variable in data_utils/db_utils as in the example I provided.
-    from utils import data_utils # Or db_utils
-    if not data_utils.DB_POOL: # Or db_utils.DB_POOL
+    # Check if DB_POOL was initialized in data_utils
+    from utils import data_utils # Or db_utils if you named it that
+    if not data_utils.DB_POOL: 
         print("DEBUG: Database pool was not initialized successfully in crawl_venues. Aborting.")
-        return # Exit if DB pool isn't there
+        return 
 
-    # Initialize configurations for crawling
     print("DEBUG: crawl_venues - Initializing crawler configurations")
     browser_config = get_browser_config()
     llm_strategy = get_llm_strategy()
@@ -44,9 +38,9 @@ async def crawl_venues():
     print("DEBUG: crawl_venues - Crawler configurations initialized")
 
     page_number = 1
-    all_venues = [] # Keep collecting venues in memory first
+    all_venues = [] 
     seen_names = set()
-    max_pages = 2  # Limit the number of pages to scrape
+    max_pages = 2
 
     print("DEBUG: crawl_venues - Starting AsyncWebCrawler context")
     async with AsyncWebCrawler(config=browser_config) as crawler:
@@ -77,11 +71,10 @@ async def crawl_venues():
     # End of while loop & async with crawler block
     print(f"DEBUG: crawl_venues - Finished scraping loop. Total pages attempted: {page_number-1}")
 
-    # --- MODIFICATION: Save collected venues to the database ---
+    # --- MODIFICATION: Save collected venues to the database ONLY ---
     if all_venues:
         print(f"DEBUG: crawl_venues - Attempting to save {len(all_venues)} venues to database.")
         await save_venues_to_db(all_venues) 
-        # The save_venues_to_db function should print its own success/attempt message.
     else:
         print("No venues were found during the crawl to save to database.")
 
@@ -94,12 +87,11 @@ async def crawl_venues():
     print("DEBUG: Exiting crawl_venues()")
 
 
-async def main_runner(): # Renamed to avoid confusion if you have another 'main'
+async def main_runner(): 
     print("DEBUG: Entered main_runner()")
     try:
         await crawl_venues()
     finally:
-        # --- MODIFICATION: Ensure database pool is closed ---
         print("DEBUG: main_runner - Ensuring database pool is closed.")
         await close_db_pool() 
     print("DEBUG: Exited main_runner()")
@@ -107,7 +99,6 @@ async def main_runner(): # Renamed to avoid confusion if you have another 'main'
 
 if __name__ == "__main__":
     print("DEBUG: Script execution started in __main__ block")
-    # Ensure your requirements.txt has 'asyncpg'
     try:
         asyncio.run(main_runner())
         print("DEBUG: asyncio.run(main_runner()) completed")
