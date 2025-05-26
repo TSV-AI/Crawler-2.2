@@ -1,3 +1,4 @@
+print("DEBUG: main.py script top level")
 import asyncio
 
 from crawl4ai import AsyncWebCrawler
@@ -17,6 +18,7 @@ load_dotenv()
 
 
 async def crawl_venues():
+    print("DEBUG: Entered crawl_venues()")
     """
     Main function to crawl venue data from the website.
     """
