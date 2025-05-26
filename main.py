@@ -54,40 +54,30 @@ async def crawl_venues():
                 break  # Stop crawling when "No Results Found" message appears
 
             # The print for "No venues extracted from page" is now in fetch_and_process_page
-            # So we only break here if no_results_found is True or venues is empty
-            if not venues and not no_results_found:
-                print(f"No complete or non-duplicate venues found on page {page_number}, stopping.")
-                break
-
-
-            # Add the venues from this page to the total list
-            all_venues.extend(venues)
-            print(f"Found {len(venues)} complete and non-duplicate venues on page {page_number}.")
-            page_number += 1  # Move to the next page
-
-            # Pause between requests to be polite and avoid rate limits
-            await asyncio.sleep(2)  # Adjust sleep time as needed
-        else:
-            if page_number > max_pages:
-                print(f"Finished scraping {max_pages} pages as requested.")
-
-    # Save the collected venues to a CSV file
-    if all_venues:
-        save_venues_to_csv(all_venues, "complete_venues.csv")
-        print(f"Saved {len(all_venues)} venues to 'complete_venues.csv'.")
-    else:
-        print("No venues were found during the crawl.")
-
-    # Display usage statistics for the LLM strategy
-    llm_strategy.show_usage()
-
-
-async def main():
-    """
-    Entry point of the script.
-    """
-    await crawl_venues()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            # Save the collected venues to a CSV file
+                if all_venues:
+                    # Define the mount path you configured in Railway
+                    mount_path = "/data"  # <--- MAKE SURE THIS MATCHES YOUR RAILWAY VOLUME MOUNT PATH
+                    filename = "complete_venues.csv"
+                    full_path_to_csv = f"{mount_path}/{filename}" 
+            
+                    # Call your save function with the full path
+                    save_venues_to_csv(all_venues, full_path_to_csv)
+                    # Update the print statement to show the correct path
+                    print(f"Saved {len(all_venues)} venues to '{full_path_to_csv}'.")
+                else:
+                    print("No venues were found during the crawl.")
+            
+                # Display usage statistics for the LLM strategy
+                llm_strategy.show_usage()
+            
+            
+            async def main():
+                """
+                Entry point of the script.
+                """
+                await crawl_venues()
+            
+            
+            if __name__ == "__main__":
+                asyncio.run(main())
